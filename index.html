@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chaser Manager</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Chaser Manager</h1>
+    <div class="actions">
+      <button class="btn" id="cardBtn" type="button" data-tip="Baixa uma imagem PNG (Player Card) com seus dados e todos os personagens">Gerar imagem</button>
+      <button class="btn" id="discordBtn" type="button" data-tip="Baixa um .zip pronto para o Discord: o header e um card por imagem (os épicos em GIF pulsante), já separados em postagens. Arraste cada pasta para uma mensagem.">Para Discord</button>
+      <button class="btn" id="brbBtn" type="button" data-tip="Abre uma apresentação de slides em tela cheia para usar enquanto você está ausente na live">Be right back</button>
+      <label class="btn">
+        Importar
+        <input type="file" id="importInput" accept=".json,application/json" hidden>
+      </label>
+      <button class="btn primary" id="exportBtn" type="button">Exportar</button>
+      <button class="btn danger" id="resetBtn" type="button">Limpar tudo</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel" id="dropZone">
+      <h2>Jogador</h2>
+      <div class="player-grid">
+        <label>Nickname
+          <input type="text" id="playerName" maxlength="40">
+        </label>
+        <label>Chaser Level
+          <span class="input-icon">
+            <img id="levelIcon" class="level-icon" alt="" hidden>
+            <input type="number" id="chaserLevel" min="0" step="1">
+          </span>
+        </label>
+        <label>Card Collection Level
+          <input type="number" id="cardCollectionLevel" min="0" step="1">
+        </label>
+        <label>Guild Points
+          <input type="number" id="guildPoints" min="0" step="1">
+        </label>
+        <div class="cell-end">
+          <div class="main-pick">
+            <span id="mainThumb" class="main-thumb"></span>
+            <button class="btn" id="mainBtn" type="button">Main</button>
+          </div>
+        </div>
+        <div class="cell-end">
+          <label class="check"><input type="checkbox" id="showDate"> Incluir data atual</label>
+        </div>
+      </div>
+      <p class="hint">Clique em um personagem para editar. Para importar, use o botão ou arraste um arquivo <code>.json</code> para esta área.</p>
+    </section>
+
+    <section>
+      <h2>Personagens</h2>
+      <div class="toolbar" id="toolbar">
+        <span class="tb-label">Ordenar:</span>
+        <button class="btn small" type="button" data-sort="custom">Personalizada</button>
+        <button class="btn small" type="button" data-sort="taDesc">Maior TA primeiro</button>
+        <button class="btn small" type="button" data-sort="taAsc">Menor TA primeiro</button>
+        <button class="btn small" type="button" id="commitSort" hidden>Salvar esta ordem</button>
+        <span class="note" id="sortNote"></span>
+      </div>
+      <div id="characters" class="characters"></div>
+    </section>
+  </main>
+
+  <!-- Janela de edição -->
+  <div id="modal" class="modal" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <h2 id="modalTitle"></h2>
+        <button id="modalClose" class="btn small" type="button">Fechar</button>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Seletor de ícones de título -->
+  <div id="picker" class="modal picker" hidden>
+    <div class="modal-box compact" role="dialog" aria-modal="true" aria-labelledby="pickerTitle">
+      <div class="modal-head">
+        <h2 id="pickerTitle"></h2>
+        <button id="pickerClear" class="btn small" type="button">Nenhum</button>
+        <button id="pickerClose" class="btn small" type="button">Fechar</button>
+      </div>
+      <input id="pickerSearch" class="picker-search" type="search" placeholder="Buscar pet pelo nome…" autocomplete="off" hidden>
+      <div id="pickerGrid" class="picker-grid"></div>
+    </div>
+  </div>
+
+  <!-- Seletor de personagem principal -->
+  <div id="mainPicker" class="modal picker" hidden>
+    <div class="modal-box wide" role="dialog" aria-modal="true" aria-labelledby="mainPickerTitle">
+      <div class="modal-head">
+        <h2 id="mainPickerTitle">Main</h2>
+        <button id="mainPickerClear" class="btn small" type="button">Nenhum</button>
+        <button id="mainPickerClose" class="btn small" type="button">Fechar</button>
+      </div>
+      <div id="mainPickerGrid" class="char-pick-grid"></div>
+    </div>
+  </div>
+
+  <!-- Pedido de acesso à pasta do app (só em file://) -->
+  <div id="folderPrompt" class="modal picker" hidden>
+    <div class="modal-box compact" role="dialog" aria-modal="true" aria-labelledby="folderTitle">
+      <div class="modal-head"><h2 id="folderTitle">Acesso à pasta do app</h2></div>
+      <p class="prompt-text">Para listar todas as imagens das pastas <code>pets</code>, <code>runes</code> e <code>titles</code> (com qualquer nome) e gerar o Player Card sem servidor, selecione a pasta onde está o <code>index.html</code>.</p>
+      <div class="prompt-actions">
+        <button id="folderSkip" class="btn" type="button">Agora não</button>
+        <button id="folderPick" class="btn primary" type="button">Selecionar pasta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Propaganda (primeira visita do dia) -->
+  <div id="ad" class="modal ad" hidden>
+    <div class="modal-box compact ad-box" role="dialog" aria-modal="true" aria-labelledby="adText">
+      <span class="ad-tag">Anúncio</span>
+      <button id="adClose" class="ad-close" type="button" aria-label="Fechar propaganda">✕</button>
+      <img class="ad-img" src="shop.png" alt="" onerror="this.remove()">
+      <p id="adText" class="ad-text">Oferta por tempo limitado! Compre poções de MP (G) e poção de ataque na loja da guilda!</p>
+    </div>
+  </div>
+
+  <!-- Faixa de mensagens que atravessa a tela -->
+  <div id="ticker" class="ticker" hidden aria-live="polite"><span id="tickerMsg" class="ticker-msg"></span></div>
+
+  <!-- Be right back: slides em tela cheia (1920×1080 ajustado à janela) -->
+  <div id="brb" class="brb" hidden>
+    <div id="brbStage" class="brb-stage">
+      <header class="brb-hud">
+        <div class="brb-hud-msg" id="brbMsg"></div>
+        <div class="brb-hud-name" id="brbName"></div>
+      </header>
+      <div id="brbSlides" class="brb-slides"></div>
+      <div class="brb-foot">
+        <div id="brbDots" class="brb-pager"></div>
+        <div class="brb-progress"><i id="brbBar"></i></div>
+      </div>
+    </div>
+    <div class="brb-controls" role="toolbar" aria-label="Controles dos slides">
+      <button id="brbPrev" type="button" aria-label="Slide anterior">◀</button>
+      <button id="brbPlay" type="button" aria-label="Pausar ou continuar">❚❚</button>
+      <button id="brbNext" type="button" aria-label="Próximo slide">▶</button>
+      <span class="sep"></span>
+      <label>Texto <input id="brbMsgInput" type="text" maxlength="30"></label>
+      <label>Troca a cada
+        <select id="brbSecs"><option value="6">6 s</option><option value="10">10 s</option><option value="15">15 s</option><option value="25">25 s</option></select>
+      </label>
+      <label class="chk"><input id="brbTransparent" type="checkbox"> Fundo transparente (OBS)</label>
+      <button id="brbLink" type="button">Copiar link p/ OBS</button>
+      <span class="sep"></span>
+      <button id="brbFull" type="button">Tela cheia</button>
+      <button id="brbClose" type="button">Fechar</button>
+    </div>
+  </div>
+
+  <div id="tooltip" class="tooltip" role="tooltip"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="gifenc.js"></script>
+  <script src="script.js"></script>
+  <script src="brb.js"></script>
+</body>
+</html>
