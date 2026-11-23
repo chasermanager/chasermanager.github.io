@@ -973,6 +973,47 @@ async function listFromDirectory(folder) {
   }
 }
 
+/** Lista as imagens de uma pasta lendo o repositório pela API pública do GitHub (para sites em *.github.io, que não listam pastas).
+ *  Endereço: https://<dono>.github.io/<repositório>/ (ou https://<dono>.github.io/ para o repositório <dono>.github.io).
+ *  Guarda o resultado por 3 minutos: a API anônima aceita 60 consultas por hora por rede. */
+const GH_TTL = 3 * 60 * 1000;
+async function listFromGitHub(folder) {
+  const host = location.hostname.toLowerCase();
+  if (!host.endsWith(".github.io")) return [];
+  const owner = host.slice(0, -".github.io".length);
+  const first = location.pathname.split("/").filter(Boolean)[0];
+  const repo = first && !/\.html?$/i.test(first) ? decodeURIComponent(first) : `${owner}.github.io`;
+  const key = `chaser-manager-gh-${owner}-${repo}-${folder}`;
+  try {
+    const cached = JSON.parse(localStorage.getItem(key) || "null");
+    if (cached && Date.now() - cached.t < GH_TTL) return cached.names;
+  } catch (_) { /* sem cache */ }
+  for (const base of [folder, `docs/${folder}`]) { // site publicado da raiz ou da pasta /docs
+    try {
+      const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${base}`, { headers: { Accept: "application/vnd.github+json" } });
+      if (!res.ok) continue;
+      const list = await res.json();
+      const names = (Array.isArray(list) ? list : []).filter((f) => f.type === "file" && IMG_RE.test(f.name)).map((f) => f.name);
+      try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), names })); } catch (_) { /* ignora */ }
+      return names;
+    } catch (_) { /* tenta o próximo */ }
+  }
+  return [];
+}
+
+/** Alternativa para qualquer hospedagem: um arquivo manifest.json ao lado do index.html, ex.:
+ *  { "runes": ["a.webp"], "titles": ["b.png"], "pets": ["c.webp"] } */
+async function listFromManifest(folder) {
+  try {
+    const res = await fetch("manifest.json", { cache: "no-store" });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (Array.isArray(data[folder]) ? data[folder] : []).map(String).filter((n) => IMG_RE.test(n));
+  } catch (_) {
+    return [];
+  }
+}
+
 const imageExists = (src) =>
   new Promise((resolve) => {
     const img = new Image();
@@ -999,6 +1040,8 @@ async function probeNumbered(folder) {
 
 async function listImages(folder) {
   let files = await listFromDirectory(folder);                // servidor com listagem de pasta
+  if (!files.length) files = await listFromManifest(folder);  // manifest.json (qualquer hospedagem)
+  if (!files.length) files = await listFromGitHub(folder);    // GitHub Pages: lê o repositório pela API
   if (!files.length && localDir) files = await listFromLocalDir(folder); // file:// com a pasta escolhida
   if (!files.length) files = await probeNumbered(folder);     // 1.webp, 2.webp...
   return files.sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
@@ -1031,7 +1074,7 @@ async function openPicker(kind, sub) {
           <span class="icon-img"><img src="${folderSrc(folder, f)}" alt="" draggable="false" onerror="this.remove()"></span>
           <span class="icon-name">${esc(baseName(f))}</span>
         </button>`).join("")
-    : `<p class="hint">Nenhuma imagem encontrada na pasta <code>${folder}</code>. Use Chrome ou Edge e escolha a pasta do app para listar todas as imagens, com qualquer nome.</p>`;
+    : `<p class="hint">Nenhuma imagem encontrada na pasta <code>${folder}</code>. ${location.hostname.endsWith(".github.io") ? "Confira se a pasta existe no repositório (com imagens) e se o site já foi publicado. Se acabou de enviar, espere um instante e tente de novo." : "Use Chrome ou Edge e escolha a pasta do app para listar todas as imagens, com qualquer nome."}</p>`;
   if (files.length) pickerGrid.insertAdjacentHTML("beforeend", `<p class="hint" id="pickerNoMatch" hidden>Nenhuma imagem com esse nome.</p>`);
 }
 
