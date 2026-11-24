@@ -36,9 +36,17 @@
     </section>`;
   }
 
+  /** Card virado para baixo que desvira durante o tempo do slide (um de cada vez, da esquerda para a direita). */
+  function flipHTML(c, i, n) {
+    const f = (0.1 + 0.55 * (i / Math.max(1, n - 1))).toFixed(3); // fração do tempo do slide em que ele desvira (10% a 65%)
+    return `<div class="flip" style="${toneStyle(c)};--f:${f}">
+      <div class="flip-in"><div class="flip-back" aria-hidden="true"></div><div class="flip-front">${cardHTML(c)}</div></div>
+    </div>`;
+  }
+
   function cardSlide(group, n, total) {
     return `<section class="brb-slide brb-cards-slide">
-      <div class="brb-cards">${group.map(cardHTML).join("")}</div>
+      <div class="brb-cards">${group.map((c, i) => flipHTML(c, i, group.length)).join("")}</div>
       <div class="brb-page">${n} / ${total}</div>
     </section>`;
   }
@@ -61,6 +69,11 @@
   /* ---------- Reprodução ---------- */
 
   function show(i) {
+    const prev = slidesEl.children[idx];
+    if (prev && prev.classList.contains("on")) { // o slide que sai mantém os cards viradas durante o fade (não "desvira" de volta)
+      prev.classList.add("leaving");
+      setTimeout(() => prev.classList.remove("leaving"), 1000);
+    }
     idx = (i + count) % count;
     [...slidesEl.children].forEach((s, k) => s.classList.toggle("on", k === idx));
     [...dots.children].forEach((d, k) => d.classList.toggle("on", k === idx));
