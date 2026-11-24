@@ -678,20 +678,30 @@ body.brb-transparent, body.brb-transparent html { background: transparent; }
 @keyframes brb-dot { 0%, 60%, 100% { opacity: .15; } 30% { opacity: 1; } }
 @keyframes brb-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.025); } }
 
-.brb-portrait .thumb { zoom: 3; border-width: 1px; border-color: var(--ch-accent, var(--border)); box-shadow: 0 0 40px color-mix(in srgb, var(--ch-accent, #000) 40%, transparent); }
+.brb-who { display: flex; align-items: center; justify-content: center; gap: 40px; max-width: 1700px; }
+.brb-portrait .thumb { zoom: 1; border-width: 1px; border-color: var(--ch-accent, var(--border)); box-shadow: 0 0 40px color-mix(in srgb, var(--ch-accent, #000) 40%, transparent); }
 .brb-portrait .thumb.epic { animation-name: epic-pulse; }
-.brb-nick { font-size: 92px; font-weight: 800; line-height: 1.05; max-width: 1500px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brb-nick { font-size: 92px; font-weight: 800; line-height: 1.25; padding-bottom: .08em; max-width: 1500px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } /* line-height folgada: não corta a perna de y, g, p… */
 .brb-period { font-size: 34px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-top: -10px; }
 .brb-stats { display: flex; gap: 110px; margin-top: 24px; }
 .brb-stat { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .brb-stat span { font-size: 28px; color: var(--muted); }
 .brb-stat b { font-size: 76px; font-weight: 800; display: flex; align-items: center; gap: 18px; font-variant-numeric: tabular-nums; }
-.brb-stat img { height: 84px; width: auto; }
+.brb-stat img { height: auto; width: auto; max-height: 84px; } /* tamanho original: sem esticar */
 
 /* Slides de cards: os mesmos cards do app, em escala 2× */
-.brb-cards-slide { padding-top: 120px; }
-.brb-cards { display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start; gap: 40px 30px; padding: 0 30px; }
-.brb-cards .flip { width: 290px; zoom: 2; flex: none; perspective: 1400px; pointer-events: none; }
+.brb-cards-slide { padding-top: 110px; }
+.brb-cards { display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 110px 56px; padding: 0 100px; height: calc(100% - 90px); }
+.brb-cards .flip {
+  width: 290px; flex: none; perspective: 1400px; pointer-events: none; /* tamanho original (290 px): retratos e ícones nítidos */
+  animation: brb-float var(--fd, 6s) ease-in-out var(--fo, 0s) infinite;
+  filter: drop-shadow(0 22px 16px rgba(0, 0, 0, .45));
+}
+@keyframes brb-float {
+  0%, 100% { transform: translateY(6px) rotate(var(--tilt, 0deg)); }
+  50%      { transform: translateY(-10px) rotate(calc(var(--tilt, 0deg) * -1)); }
+}
+.brb.paused .brb-cards .flip { animation-play-state: paused; }
 .brb-cards .card { width: 100%; cursor: default; }
 
 /* Cards virados para baixo; cada um desvira em seu momento durante o tempo do slide */

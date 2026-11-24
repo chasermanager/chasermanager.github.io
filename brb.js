@@ -4,7 +4,7 @@
  *   (1920×1080). Funciona em qualquer hospedagem estática (ex.: GitHub Pages), sem servidor. */
 (() => {
   const KEY = "chaser-manager-brb";
-  const PER_SLIDE = 5; // cards por slide (3 + 2)
+  const PER_SLIDE = 10; // cards por slide (5 + 5), no tamanho original: imagens nítidas, sem ampliar
   const cfg = { secs: 10, msg: "Be right back", transparent: false };
   try { Object.assign(cfg, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (_) { /* padrão */ }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch (_) { /* ignora */ } };
@@ -25,8 +25,10 @@
     const stat = (label, value, icon = "") => `<div class="brb-stat"><span>${label}</span><b>${icon}${fmt(value)}</b></div>`;
     return `<section class="brb-slide brb-title" ${main ? `style="${toneStyle(main)}"` : ""}>
       <div class="brb-msg">${esc(cfg.msg)}<i class="brb-dots" aria-hidden="true"><u>.</u><u>.</u><u>.</u></i></div>
-      ${main ? `<div class="brb-portrait">${portraitHTML(main.id)}</div>` : ""}
-      <div class="brb-nick">${esc(nick())}</div>
+      <div class="brb-who">
+        ${main ? `<div class="brb-portrait">${portraitHTML(main.id)}</div>` : ""}
+        <div class="brb-nick">${esc(nick())}</div>
+      </div>
       ${period ? `<div class="brb-period">${esc(period)}</div>` : ""}
       <div class="brb-stats">
         ${stat("Chaser Level", p.chaserLevel, lvl ? `<img src="${esc(lvl)}" alt="" onerror="this.remove()">` : "")}
@@ -39,7 +41,9 @@
   /** Card virado para baixo que desvira durante o tempo do slide (um de cada vez, da esquerda para a direita). */
   function flipHTML(c, i, n) {
     const f = (0.1 + 0.55 * (i / Math.max(1, n - 1))).toFixed(3); // fração do tempo do slide em que ele desvira (10% a 65%)
-    return `<div class="flip" style="${toneStyle(c)};--f:${f}">
+    const tilt = ((i * 37) % 7 - 3) * 0.3; // inclinação leve e diferente em cada card (−0,9° a +0,9°)
+    const fd = (5.2 + (i * 53) % 30 / 10).toFixed(1); // duração da flutuação 5,2–8,1 s
+    return `<div class="flip" style="${toneStyle(c)};--f:${f};--tilt:${tilt.toFixed(1)}deg;--fd:${fd}s;--fo:${(-i * 0.9).toFixed(1)}s">
       <div class="flip-in"><div class="flip-back" aria-hidden="true"></div><div class="flip-front">${cardHTML(c)}</div></div>
     </div>`;
   }
